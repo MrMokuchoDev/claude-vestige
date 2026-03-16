@@ -1,8 +1,8 @@
-# ContextFlow — Arquitectura
+# Claude Vestige — Arquitectura
 
 ## Visión general
 
-ContextFlow es un Plugin de Claude Code compuesto por dos capas:
+Claude Vestige es un Plugin de Claude Code compuesto por dos capas:
 
 1. **Capa automática (hooks):** se ejecuta sin intervención del usuario en cada sesión
 2. **Capa manual (MCP + skills):** disponible cuando Claude o el usuario necesitan búsqueda explícita
@@ -30,15 +30,15 @@ ContextFlow es un Plugin de Claude Code compuesto por dos capas:
 │  │  └────┬────┘ └──────────┘ └───────────────────┘       │  │
 │  │       │                                                │  │
 │  │  ┌────▼─────────────────┐                              │  │
-│  │  │  .contextflow/db/    │                              │  │
+│  │  │  .claude-vestige/db/    │                              │  │
 │  │  │  (por proyecto)      │                              │  │
 │  │  └──────────────────────┘                              │  │
 │  └────────────────────────────────────────────────────────┘  │
 │                                                             │
 │  ┌─────────────────┐  ┌──────────────────────────────────┐  │
 │  │  MCP Server     │  │  Skills                          │  │
-│  │  (manual)       │  │  /contextflow:bootstrap          │  │
-│  │  retrieve_ctx   │  │  /contextflow:search             │  │
+│  │  (manual)       │  │  /claude_vestige:bootstrap          │  │
+│  │  retrieve_ctx   │  │  /claude_vestige:search             │  │
 │  │  get_chunks     │  │                                  │  │
 │  │  save_memory    │  │                                  │  │
 │  └─────────────────┘  └──────────────────────────────────┘  │
@@ -48,8 +48,8 @@ ContextFlow es un Plugin de Claude Code compuesto por dos capas:
 ## Estructura de archivos
 
 ```
-context-flow/
-├── contextflow/                     # Paquete Python (pip install -e .)
+claude-vestige/
+├── claude_vestige/                     # Paquete Python (pip install -e .)
 │   ├── __init__.py
 │   ├── store.py                     # ChromaDB: upsert, search, delete
 │   ├── ingester.py                  # Chunking markdown por ## headers
@@ -58,9 +58,9 @@ context-flow/
 │   ├── memory.py                    # save_memory con validación de tipos
 │   ├── bootstrap.py                 # Detección de stack, generación de config
 │   ├── server.py                    # MCP server (solo tools manuales)
-│   └── api.py                       # Dashboard FastAPI (python -m contextflow.api)
+│   └── api.py                       # Dashboard FastAPI (python -m claude_vestige.api)
 │
-├── contextflow-plugin/              # Plugin de Claude Code
+├── claude-vestige-plugin/              # Plugin de Claude Code
 │   ├── .claude-plugin/
 │   │   └── plugin.json              # Manifiesto del plugin
 │   ├── .mcp.json                    # MCP server para tools manuales
@@ -83,7 +83,7 @@ context-flow/
 **Por proyecto indexado (no va en este repo):**
 ```
 {proyecto}/
-└── .contextflow/
+└── .claude-vestige/
     ├── config.toml                  # Qué archivos indexar
     └── db/                          # ChromaDB persistido (en .gitignore)
 ```
@@ -92,7 +92,7 @@ context-flow/
 
 ### Tipos de hook usados
 
-Los hooks de Claude Code soportan distintos tipos. ContextFlow usa dos:
+Los hooks de Claude Code soportan distintos tipos. Claude Vestige usa dos:
 
 - **`command`** — ejecuta un script Python. Recibe JSON por stdin, retorna texto/JSON por stdout.
   Usado en: SessionStart, UserPromptSubmit, Stop (y el command de PostToolUse que guarda en ChromaDB)
@@ -107,7 +107,7 @@ El mecanismo central para capturar contexto valioso combina 3 hooks:
 ```
 1. UserPromptSubmit (command)
    → Captura lo que el usuario pidió
-   → Guarda en archivo temporal: ~/.contextflow/current_prompt.txt
+   → Guarda en archivo temporal: ~/.claude-vestige/current_prompt.txt
 
 2. PostToolUse (prompt) — Haiku
    → Recibe: tool_name, tool_input, tool_response
@@ -133,19 +133,19 @@ y lo que Claude ejecutó (el "qué"). Así las observaciones son útiles como co
 - **Trigger:** cada vez que se inicia/resume/compacta una sesión
 - **Input:** JSON con `cwd`, `session_id`, `source` (startup|resume|compact)
 - **Lógica:**
-  1. Buscar `.contextflow/config.toml` subiendo en el árbol de directorios
+  1. Buscar `.claude-vestige/config.toml` subiendo en el árbol de directorios
   3. **Si existe config + índice:** buscar top 5 chunks con query genérica, imprimir contenido
   4. **Si NO existe config (primera vez):** buscar README.md y CLAUDE.md en el proyecto.
      Si existen → auto-bootstrap (generar config.toml, indexar, inyectar contexto).
      Si no existen → escaneo básico del proyecto
      (detect_stack + conteo de archivos por extensión), inyectar resumen mínimo.
-     Informa sobre `/contextflow:bootstrap` opcionalmente.
+     Informa sobre `/claude_vestige:bootstrap` opcionalmente.
 - **Output:** texto impreso a stdout → inyectado directamente en el contexto de Claude
 
 ### UserPromptSubmit → `user_prompt.py` (command)
 - **Trigger:** cada vez que el usuario envía un mensaje
 - **Input:** JSON con `prompt` (el mensaje del usuario)
-- **Lógica:** guardar el prompt en `~/.contextflow/current_prompt.txt`
+- **Lógica:** guardar el prompt en `~/.claude-vestige/current_prompt.txt`
 - **Output:** vacío (no inyecta nada en la conversación)
 
 ### PostToolUse — pipeline de 2 pasos
@@ -187,8 +187,8 @@ Tools disponibles para búsqueda explícita:
 
 | Skill | Cuándo se usa |
 |---|---|
-| `/contextflow:bootstrap` | Inicializar un proyecto nuevo |
-| `/contextflow:search` | Búsqueda profunda guiada |
+| `/claude_vestige:bootstrap` | Inicializar un proyecto nuevo |
+| `/claude_vestige:search` | Búsqueda profunda guiada |
 
 ## Módulos core Python
 
@@ -206,7 +206,7 @@ Tools disponibles para búsqueda explícita:
 ### Primera vez en un proyecto
 ```
 SessionStart hook (command)
-  → No hay .contextflow/config.toml
+  → No hay .claude-vestige/config.toml
   → Busca README.md, CLAUDE.md
   → Si existen: auto-bootstrap
     → config.py genera config.toml con esos archivos
@@ -216,7 +216,7 @@ SessionStart hook (command)
   → Si no existen: escaneo básico del proyecto
     → detect_stack() + conteo de archivos por extensión
     → stdout: resumen mínimo del proyecto como contexto
-    → Informa sobre /contextflow:bootstrap (opcional)
+    → Informa sobre /claude_vestige:bootstrap (opcional)
 ```
 
 ### Sesión típica (proyecto ya indexado)
@@ -227,7 +227,7 @@ SessionStart hook (command)
 
 2. Usuario escribe un mensaje
    → UserPromptSubmit hook (command)
-   → Guarda prompt en ~/.contextflow/current_prompt.txt
+   → Guarda prompt en ~/.claude-vestige/current_prompt.txt
 
 3. Claude trabaja, usa Write/Edit/Bash
    → PostToolUse hook (prompt): Haiku analiza tool use + prompt del usuario
@@ -241,7 +241,7 @@ SessionStart hook (command)
 
 ## ChromaDB
 
-- Cada proyecto tiene su propia DB aislada en `{proyecto}/.contextflow/db/`
+- Cada proyecto tiene su propia DB aislada en `{proyecto}/.claude-vestige/db/`
 - Dos colecciones simples: `docs` (documentación indexada) y `sessions` (observaciones capturadas)
 - Sin prefijos por project_id — el aislamiento es por directorio
 - No existe DB centralizada
@@ -275,5 +275,5 @@ SessionStart hook (command)
 | Retrieval 2 capas (retrieve_context + get_chunks) | Ahorra ~70% tokens vs retornar chunks completos |
 | config.toml explícito | El usuario controla qué se indexa. Auto-bootstrap solo con README.md y CLAUDE.md |
 | Escaneo básico como fallback | Si no hay docs, al menos inyectar stack + estructura como contexto mínimo |
-| Paquete pip (`contextflow/`) | Los hooks importan `from contextflow.store import ...` sin hacks de sys.path. Instalación estándar con `pip install -e .` |
+| Paquete pip (`claude_vestige/`) | Los hooks importan `from claude_vestige.store import ...` sin hacks de sys.path. Instalación estándar con `pip install -e .` |
 | Instalación: pip + /plugin install | pip instala dependencias Python; /plugin install registra hooks y skills en Claude Code |

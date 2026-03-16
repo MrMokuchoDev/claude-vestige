@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Claude Vestige Dashboard</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600;700&display=swap');
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { background: #080B14; color: #E2E8F0; font-family: 'IBM Plex Mono', monospace; min-height: 100vh; display: flex; flex-direction: column; }
+
+    /* Header */
+    #header { border-bottom: 1px solid rgba(255,255,255,0.06); padding: 16px 24px; display: flex; align-items: center; gap: 14px; background: rgba(255,255,255,0.02); flex-shrink: 0; }
+    #logo { width: 38px; height: 38px; background: linear-gradient(135deg, #00D4FF, #A78BFA); border-radius: 9px; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; color: #080B14; }
+    #header h1 { font-size: 16px; font-weight: 700; color: #fff; }
+    #header .sub { font-size: 10px; color: #475569; margin-top: 1px; }
+    #header .ver { margin-left: auto; font-size: 11px; color: #475569; }
+
+    /* Layout */
+    #layout { display: flex; flex: 1; height: calc(100vh - 71px); overflow: hidden; }
+
+    /* Sidebar */
+    #sidebar { width: 260px; border-right: 1px solid rgba(255,255,255,0.06); padding: 16px 0; flex-shrink: 0; overflow-y: auto; display: flex; flex-direction: column; }
+    .sidebar-label { font-size: 10px; font-weight: 700; color: #475569; letter-spacing: 0.08em; padding: 0 16px; margin-bottom: 10px; }
+    .project-item { padding: 12px 16px; cursor: pointer; border-left: 3px solid transparent; transition: all 0.15s; }
+    .project-item:hover { background: rgba(255,255,255,0.03); }
+    .project-item.active { border-left-color: #00D4FF; background: rgba(0,212,255,0.06); }
+    .project-item .p-name { font-size: 13px; font-weight: 700; color: #94A3B8; }
+    .project-item.active .p-name { color: #fff; }
+    .project-item .p-path { font-size: 10px; color: #475569; margin-top: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .project-item .p-stats { display: flex; gap: 8px; margin-top: 6px; }
+    .project-item .p-stat { font-size: 10px; padding: 2px 8px; border-radius: 10px; background: rgba(255,255,255,0.06); color: #64748B; }
+    .project-item.active .p-stat { background: rgba(0,212,255,0.12); color: #00D4FF; }
+    #sidebar-empty { padding: 24px 16px; text-align: center; color: #334155; font-size: 12px; }
+    #sidebar-stats { margin-top: auto; padding: 14px 16px; border-top: 1px solid rgba(255,255,255,0.06); }
+    .stat-row { display: flex; justify-content: space-between; margin-bottom: 4px; }
+    .stat-lbl { font-size: 10px; color: #475569; }
+    .stat-val { font-size: 10px; font-weight: 700; color: #94A3B8; }
+
+    /* Main */
+    #main { flex: 1; overflow-y: auto; padding: 0; display: flex; flex-direction: column; }
+
+    /* Top bar with tabs + search */
+    #topbar { padding: 16px 28px; border-bottom: 1px solid rgba(255,255,255,0.06); display: flex; align-items: center; gap: 16px; flex-shrink: 0; }
+    .tab-group { display: flex; gap: 0; }
+    .tab { padding: 8px 18px; cursor: pointer; font-size: 11px; font-weight: 600; color: #64748B; border-bottom: 2px solid transparent; transition: all 0.15s; user-select: none; }
+    .tab:hover { color: #94A3B8; }
+    .tab.active { color: #00D4FF; border-bottom-color: #00D4FF; }
+    #search-box { flex: 1; display: flex; gap: 8px; margin-left: auto; max-width: 480px; }
+    #search-box input { flex: 1; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); border-radius: 6px; padding: 8px 14px; color: #E2E8F0; font-family: inherit; font-size: 12px; }
+    #search-box input:focus { outline: none; border-color: #00D4FF; background: rgba(0,212,255,0.04); }
+    #search-box button { background: linear-gradient(135deg, #00D4FF, #A78BFA); color: #080B14; border: none; border-radius: 6px; padding: 8px 16px; cursor: pointer; font-family: inherit; font-size: 11px; font-weight: 700; transition: opacity 0.15s; }
+    #search-box button:hover { opacity: 0.85; }
+
+    /* Content area */
+    #content { flex: 1; padding: 24px 28px; overflow-y: auto; }
+    .section { display: none; }
+    .section.active { display: block; }
+
+    /* Welcome state */
+    #welcome { display: flex; align-items: center; justify-content: center; height: 100%; }
+    .welcome-box { text-align: center; color: #334155; }
+    .welcome-box .icon { font-size: 48px; margin-bottom: 16px; opacity: 0.3; }
+    .welcome-box h2 { font-size: 16px; color: #475569; margin-bottom: 8px; }
+    .welcome-box p { font-size: 12px; }
+
+    /* Cards grid */
+    .cards-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 12px; }
+    .card { padding: 16px 18px; border-radius: 10px; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.06); transition: border-color 0.2s; }
+    .card:hover { border-color: rgba(255,255,255,0.12); }
+    .card-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px; }
+    .card-file { font-size: 12px; font-weight: 600; color: #00D4FF; }
+    .card-badge { font-size: 9px; font-weight: 700; padding: 2px 8px; border-radius: 10px; letter-spacing: 0.04em; }
+    .card-badge.doc { background: rgba(0,212,255,0.12); color: #00D4FF; }
+    .card-badge.memory { background: rgba(167,139,250,0.12); color: #A78BFA; }
+    .card-content { font-size: 12px; color: #94A3B8; line-height: 1.7; white-space: pre-wrap; max-height: 180px; overflow-y: auto; }
+    .card-content::-webkit-scrollbar { width: 3px; }
+    .card-content::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 3px; }
+    .card-footer { margin-top: 10px; font-size: 10px; color: #334155; }
+
+    /* Observations list */
+    .obs-list { display: grid; gap: 10px; }
+    .obs-item { padding: 14px 18px; border-radius: 10px; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.06); }
+    .obs-top { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+    .obs-type-badge { font-size: 9px; font-weight: 700; padding: 3px 10px; border-radius: 10px; letter-spacing: 0.04em; }
+    .obs-type-badge.decision { background: rgba(52,211,153,0.12); color: #34D399; }
+    .obs-type-badge.change { background: rgba(251,191,36,0.12); color: #FBBF24; }
+    .obs-type-badge.bug_fix { background: rgba(248,113,113,0.12); color: #F87171; }
+    .obs-type-badge.note { background: rgba(148,163,184,0.12); color: #94A3B8; }
+    .obs-date { font-size: 10px; color: #334155; }
+    .obs-text { font-size: 12px; color: #CBD5E1; line-height: 1.7; white-space: pre-wrap; }
+
+    /* Empty states */
+    .empty-state { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 60px 20px; color: #334155; }
+    .empty-state .e-icon { font-size: 32px; margin-bottom: 12px; opacity: 0.4; }
+    .empty-state .e-text { font-size: 12px; }
+
+    /* Scrollbar */
+    ::-webkit-scrollbar { width: 4px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.08); border-radius: 4px; }
+  </style>
+</head>
+<body>
+<div id="header">
+  <div id="logo">CF</div>
+  <div>
+    <h1>Claude Vestige</h1>
+    <div class="sub">Semantic Memory Dashboard</div>
+  </div>
+  <div class="ver" id="version">v0.1.0</div>
+</div>
+<div id="layout">
+  <div id="sidebar">
+    <div class="sidebar-label">PROYECTOS</div>
+    <div id="project-list"></div>
+    <div id="sidebar-stats"></div>
+  </div>
+  <div id="main">
+    <div id="topbar" style="display:none">
+      <div class="tab-group">
+        <div class="tab active" data-tab="search">Buscar</div>
+        <div class="tab" data-tab="docs">Documentos</div>
+        <div class="tab" data-tab="observations">Observaciones</div>
+      </div>
+      <div id="search-box">
+        <input type="text" id="search-input" placeholder="Buscar contexto..." />
+        <button onclick="doSearch()">Buscar</button>
+      </div>
+    </div>
+    <div id="content">
+      <div id="welcome">
+        <div class="welcome-box">
+          <div class="icon">&#9881;</div>
+          <h2>Selecciona un proyecto</h2>
+          <p>Elige un proyecto del sidebar para explorar su contexto</p>
+        </div>
+      </div>
+      <div class="section" id="search-section">
+        <div class="cards-grid" id="search-results"></div>
+      </div>
+      <div class="section" id="docs-section">
+        <div class="cards-grid" id="docs-results"></div>
+      </div>
+      <div class="section" id="observations-section">
+        <div class="obs-list" id="observations"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+let activeProject = null;
+let activeProjectName = '';
+const API = '';
+
+// Tabs
+document.querySelectorAll('.tab').forEach(tab => {
+  tab.addEventListener('click', () => {
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+    tab.classList.add('active');
+    document.getElementById(tab.dataset.tab + '-section').classList.add('active');
+    document.getElementById('welcome').style.display = 'none';
+  });
+});
+
+async function init() {
+  try {
+    const health = await fetch(API + '/api/health').then(r => r.json());
+    document.getElementById('version').textContent = 'v' + health.version;
+    loadProjects();
+  } catch (e) {
+    document.getElementById('version').textContent = 'offline';
+  }
+}
+
+async function loadProjects() {
+  try {
+    const projects = await fetch(API + '/api/projects').then(r => r.json());
+    const container = document.getElementById('project-list');
+
+    if (!projects.length) {
+      container.innerHTML = '<div id="sidebar-empty">No hay proyectos<br>indexados a\u00fan.</div>';
+      return;
+    }
+
+    container.innerHTML = projects.map(p => `
+      <div class="project-item" onclick="selectProject('${p.root}', '${p.name}', this)">
+        <div class="p-name">${p.name}</div>
+        <div class="p-path">${p.root}</div>
+        <div class="p-stats">
+          <span class="p-stat">${p.docs_chunks} docs</span>
+          <span class="p-stat">${p.sessions_chunks} obs</span>
+          ${p.stack?.length ? `<span class="p-stat">${p.stack.join(', ')}</span>` : ''}
+        </div>
+      </div>
+    `).join('');
+
+    // Auto-select first
+    if (projects.length === 1) {
+      const first = container.querySelector('.project-item');
+      selectProject(projects[0].root, projects[0].name, first);
+    }
+  } catch (e) {
+    document.getElementById('project-list').innerHTML = '<div id="sidebar-empty">Error al cargar.</div>';
+  }
+}
+
+function selectProject(root, name, el) {
+  activeProject = root;
+  activeProjectName = name;
+  document.querySelectorAll('.project-item').forEach(c => c.classList.remove('active'));
+  if (el) el.classList.add('active');
+  document.getElementById('topbar').style.display = 'flex';
+  document.getElementById('welcome').style.display = 'none';
+  document.getElementById('search-input').placeholder = 'Buscar en ' + name + '...';
+
+  // Show search tab by default
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelector('.tab[data-tab="search"]').classList.add('active');
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  document.getElementById('search-section').classList.add('active');
+
+  loadDocs();
+  loadObservations();
+  loadStats();
+}
+
+async function loadStats() {
+  if (!activeProject) return;
+  try {
+    const stats = await fetch(API + '/api/stats/' + encodeURIComponent(activeProject)).then(r => r.json());
+    document.getElementById('sidebar-stats').innerHTML = `
+      <div class="stat-row"><span class="stat-lbl">Proyecto</span><span class="stat-val">${stats.name || '-'}</span></div>
+      <div class="stat-row"><span class="stat-lbl">Docs</span><span class="stat-val">${stats.docs_chunks || 0} chunks</span></div>
+      <div class="stat-row"><span class="stat-lbl">Observaciones</span><span class="stat-val">${stats.sessions_chunks || 0}</span></div>
+      <div class="stat-row"><span class="stat-lbl">Provider</span><span class="stat-val">${stats.provider || 'fastembed'}</span></div>
+    `;
+  } catch (e) {}
+}
+
+async function doSearch() {
+  if (!activeProject) return;
+  const query = document.getElementById('search-input').value;
+  if (!query) return;
+
+  // Switch to search tab
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelector('.tab[data-tab="search"]').classList.add('active');
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  document.getElementById('search-section').classList.add('active');
+
+  try {
+    const results = await fetch(API + '/api/search?query=' + encodeURIComponent(query) + '&project_root=' + encodeURIComponent(activeProject) + '&n=10').then(r => r.json());
+    const container = document.getElementById('search-results');
+
+    if (!results.length) {
+      container.innerHTML = '<div class="empty-state"><div class="e-icon">&#128269;</div><div class="e-text">Sin resultados para "' + escapeHtml(query) + '"</div></div>';
+      return;
+    }
+
+    container.innerHTML = results.map(r => `
+      <div class="card">
+        <div class="card-header">
+          <span class="card-file">${escapeHtml(r.file)} &rsaquo; ${escapeHtml(r.section)}</span>
+          <span class="card-badge ${r.type}">${r.type}</span>
+        </div>
+        <div class="card-content">${escapeHtml(r.content || r.snippet)}</div>
+      </div>
+    `).join('');
+  } catch (e) {
+    document.getElementById('search-results').innerHTML = '<div class="empty-state"><div class="e-text">Error en b\u00fasqueda.</div></div>';
+  }
+}
+
+async function loadDocs() {
+  if (!activeProject) return;
+  try {
+    const results = await fetch(API + '/api/chunks/' + encodeURIComponent(activeProject)).then(r => r.json());
+    const docs = Array.isArray(results) ? results : [];
+    const container = document.getElementById('docs-results');
+
+    if (!docs.length) {
+      container.innerHTML = '<div class="empty-state"><div class="e-icon">&#128196;</div><div class="e-text">Sin documentos indexados.</div></div>';
+      return;
+    }
+
+    container.innerHTML = docs.map(r => `
+      <div class="card">
+        <div class="card-header">
+          <span class="card-file">${escapeHtml(r.file)} &rsaquo; ${escapeHtml(r.section)}</span>
+          <span class="card-badge doc">doc</span>
+        </div>
+        <div class="card-content">${escapeHtml(r.content || r.snippet)}</div>
+      </div>
+    `).join('');
+  } catch (e) {
+    document.getElementById('docs-results').innerHTML = '<div class="empty-state"><div class="e-text">Error al cargar.</div></div>';
+  }
+}
+
+async function loadObservations() {
+  if (!activeProject) return;
+  try {
+    const sessions = await fetch(API + '/api/sessions/' + encodeURIComponent(activeProject)).then(r => r.json());
+    const container = document.getElementById('observations');
+
+    if (!Array.isArray(sessions) || !sessions.length) {
+      container.innerHTML = '<div class="empty-state"><div class="e-icon">&#128065;</div><div class="e-text">Sin observaciones a\u00fan. Se capturan autom\u00e1ticamente al trabajar.</div></div>';
+      return;
+    }
+
+    container.innerHTML = sessions.map(s => `
+      <div class="obs-item">
+        <div class="obs-top">
+          <span class="obs-type-badge ${s.type}">${s.type}</span>
+          <span class="obs-date">${new Date(s.date * 1000).toLocaleString()}</span>
+        </div>
+        <div class="obs-text">${escapeHtml(s.content)}</div>
+      </div>
+    `).join('');
+  } catch (e) {
+    document.getElementById('observations').innerHTML = '<div class="empty-state"><div class="e-text">Error al cargar.</div></div>';
+  }
+}
+
+document.getElementById('search-input').addEventListener('keypress', e => {
+  if (e.key === 'Enter') doSearch();
+});
+
+function escapeHtml(text) {
+  const div = document.createElement('div');
+  div.textContent = text;
+  return div.innerHTML;
+}
+
+init();
+
+// Auto-refresh: reload data every 15 seconds to pick up writes from hooks
+setInterval(() => {
+  if (activeProject) {
+    loadDocs();
+    loadObservations();
+    loadStats();
+  }
+}, 15000);
+</script>
+</body>
+</html>

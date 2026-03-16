@@ -1,0 +1,9 @@
+{
+  "name": "claude_vestige",
+  "version": "0.1.0",
+  "description": "Persistent semantic memory for Claude Code. Automatically injects relevant context at session start and captures observations during work.",
+  "author": {
+    "name": "Claude Vestige"
+  },
+  "repository": "https://github.com/mrmokuchodev/claude_vestige"
+}

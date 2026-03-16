@@ -1,0 +1,9 @@
+{
+  "mcpServers": {
+    "claude_vestige": {
+      "type": "stdio",
+      "command": "${CLAUDE_PLUGIN_ROOT}/../.venv/bin/python",
+      "args": ["-m", "claude_vestige.server"]
+    }
+  }
+}

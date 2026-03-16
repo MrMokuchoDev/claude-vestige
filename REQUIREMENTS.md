@@ -1,4 +1,4 @@
-# ContextFlow — Requerimientos
+# Claude Vestige — Requerimientos
 
 ## Problema
 
@@ -13,18 +13,18 @@ Los mecanismos existentes (CLAUDE.md, auto-memory) son manuales y limitados:
 
 ## Solución
 
-ContextFlow es un **Plugin de Claude Code** que provee memoria semántica persistente.
+Claude Vestige es un **Plugin de Claude Code** que provee memoria semántica persistente.
 Indexa documentación y captura decisiones automáticamente usando embeddings locales
 y ChromaDB, recuperándolos como contexto relevante en futuras sesiones.
 
 ## Requisitos Funcionales
 
 ### RF1: Inyección automática de contexto (SessionStart)
-- Al iniciar una sesión, el plugin verifica si el proyecto tiene `.contextflow/db/`
+- Al iniciar una sesión, el plugin verifica si el proyecto tiene `.claude-vestige/db/`
 - **Primera vez (no indexado):** busca README.md y CLAUDE.md en el proyecto.
   Si existen, los indexa automáticamente (genera config.toml + ChromaDB) e inyecta su contexto.
   Si no existen, hace un escaneo básico del proyecto (stack, conteo de archivos por extensión)
-  e inyecta ese resumen como contexto mínimo. Informa que puede usar `/contextflow:bootstrap` opcionalmente
+  e inyecta ese resumen como contexto mínimo. Informa que puede usar `/claude_vestige:bootstrap` opcionalmente
 - **Sesiones posteriores:** busca en ChromaDB los chunks más relevantes y los inyecta directamente
 - Claude recibe el contexto sin necesidad de llamar ningún tool
 - Debe funcionar también después de un compact (re-inyectar contexto perdido)
@@ -48,15 +48,15 @@ y ChromaDB, recuperándolos como contexto relevante en futuras sesiones.
 - Guarda qué archivos se modificaron y cuántas herramientas se usaron
 - Limpia el archivo temporal del prompt
 
-### RF5: Inicialización de proyecto (Skill: /contextflow:bootstrap)
+### RF5: Inicialización de proyecto (Skill: /claude_vestige:bootstrap)
 - Skill guiado que detecta el stack del proyecto y presenta archivos candidatos
 - El usuario elige qué archivos indexar
-- Genera `.contextflow/config.toml` e indexa los archivos seleccionados
+- Genera `.claude-vestige/config.toml` e indexa los archivos seleccionados
 
-### RF6: Búsqueda manual profunda (Skill: /contextflow:search + MCP tools)
+### RF6: Búsqueda manual profunda (Skill: /claude_vestige:search + MCP tools)
 - Retrieval en 2 capas: `retrieve_context` (índice liviano) → `get_chunks` (contenido completo)
 - Disponible como MCP tools para cuando Claude necesite búsqueda explícita
-- Skill `/contextflow:search` guía el flujo de búsqueda
+- Skill `/claude_vestige:search` guía el flujo de búsqueda
 
 ### RF7: Guardado manual de memorias (MCP tool: save_memory)
 - Tool MCP para guardar memorias específicas que la captura automática no cubriría
@@ -70,8 +70,8 @@ y ChromaDB, recuperándolos como contexto relevante en futuras sesiones.
 - No debe depender de que Claude decida llamar tools para la funcionalidad core
 
 ### RNF2: Instalación simple
-- Dos pasos: `pip install contextflow` (dependencias) + `/plugin install contextflow` (hooks/skills)
-- En desarrollo: `pip install -e .` + `claude --plugin-dir ./contextflow-plugin`
+- Dos pasos: `pip install claude_vestige` (dependencias) + `/plugin install claude_vestige` (hooks/skills)
+- En desarrollo: `pip install -e .` + `claude --plugin-dir ./claude-vestige-plugin`
 - Después de instalar, funciona en todos los proyectos sin configuración adicional
 
 ### RNF3: Sin dependencias externas pesadas
@@ -92,7 +92,7 @@ y ChromaDB, recuperándolos como contexto relevante en futuras sesiones.
 - El usuario controla qué se indexa via `config.toml`
 
 ### RNF6: Aislamiento entre proyectos
-- Cada proyecto tiene su propia base de datos ChromaDB en `.contextflow/db/`
+- Cada proyecto tiene su propia base de datos ChromaDB en `.claude-vestige/db/`
 - Colecciones simples: `docs` y `sessions` (aislamiento por directorio, sin prefijos)
 - Nunca mezclar datos entre proyectos
 
