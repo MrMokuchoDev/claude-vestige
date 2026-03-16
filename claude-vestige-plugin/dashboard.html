@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="es">
+<html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -112,28 +112,28 @@
 </div>
 <div id="layout">
   <div id="sidebar">
-    <div class="sidebar-label">PROYECTOS</div>
+    <div class="sidebar-label">PROJECTS</div>
     <div id="project-list"></div>
     <div id="sidebar-stats"></div>
   </div>
   <div id="main">
     <div id="topbar" style="display:none">
       <div class="tab-group">
-        <div class="tab active" data-tab="search">Buscar</div>
-        <div class="tab" data-tab="docs">Documentos</div>
-        <div class="tab" data-tab="observations">Observaciones</div>
+        <div class="tab active" data-tab="search">Search</div>
+        <div class="tab" data-tab="docs">Documents</div>
+        <div class="tab" data-tab="observations">Observations</div>
       </div>
       <div id="search-box">
-        <input type="text" id="search-input" placeholder="Buscar contexto..." />
-        <button onclick="doSearch()">Buscar</button>
+        <input type="text" id="search-input" placeholder="Search context..." />
+        <button onclick="doSearch()">Search</button>
       </div>
     </div>
     <div id="content">
       <div id="welcome">
         <div class="welcome-box">
           <div class="icon">&#9881;</div>
-          <h2>Selecciona un proyecto</h2>
-          <p>Elige un proyecto del sidebar para explorar su contexto</p>
+          <h2>Select a project</h2>
+          <p>Choose a project from the sidebar to explore its context</p>
         </div>
       </div>
       <div class="section" id="search-section">
@@ -181,7 +181,7 @@ async function loadProjects() {
     const container = document.getElementById('project-list');
 
     if (!projects.length) {
-      container.innerHTML = '<div id="sidebar-empty">No hay proyectos<br>indexados a\u00fan.</div>';
+      container.innerHTML = '<div id="sidebar-empty">No indexed<br>projects yet.</div>';
       return;
     }
 
@@ -203,7 +203,7 @@ async function loadProjects() {
       selectProject(projects[0].root, projects[0].name, first);
     }
   } catch (e) {
-    document.getElementById('project-list').innerHTML = '<div id="sidebar-empty">Error al cargar.</div>';
+    document.getElementById('project-list').innerHTML = '<div id="sidebar-empty">Failed to load.</div>';
   }
 }
 
@@ -214,7 +214,7 @@ function selectProject(root, name, el) {
   if (el) el.classList.add('active');
   document.getElementById('topbar').style.display = 'flex';
   document.getElementById('welcome').style.display = 'none';
-  document.getElementById('search-input').placeholder = 'Buscar en ' + name + '...';
+  document.getElementById('search-input').placeholder = 'Search in ' + name + '...';
 
   // Show search tab by default
   document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
@@ -232,9 +232,9 @@ async function loadStats() {
   try {
     const stats = await fetch(API + '/api/stats/' + encodeURIComponent(activeProject)).then(r => r.json());
     document.getElementById('sidebar-stats').innerHTML = `
-      <div class="stat-row"><span class="stat-lbl">Proyecto</span><span class="stat-val">${stats.name || '-'}</span></div>
+      <div class="stat-row"><span class="stat-lbl">Project</span><span class="stat-val">${stats.name || '-'}</span></div>
       <div class="stat-row"><span class="stat-lbl">Docs</span><span class="stat-val">${stats.docs_chunks || 0} chunks</span></div>
-      <div class="stat-row"><span class="stat-lbl">Observaciones</span><span class="stat-val">${stats.sessions_chunks || 0}</span></div>
+      <div class="stat-row"><span class="stat-lbl">Observations</span><span class="stat-val">${stats.sessions_chunks || 0}</span></div>
       <div class="stat-row"><span class="stat-lbl">Provider</span><span class="stat-val">${stats.provider || 'fastembed'}</span></div>
     `;
   } catch (e) {}
@@ -256,7 +256,7 @@ async function doSearch() {
     const container = document.getElementById('search-results');
 
     if (!results.length) {
-      container.innerHTML = '<div class="empty-state"><div class="e-icon">&#128269;</div><div class="e-text">Sin resultados para "' + escapeHtml(query) + '"</div></div>';
+      container.innerHTML = '<div class="empty-state"><div class="e-icon">&#128269;</div><div class="e-text">No results for "' + escapeHtml(query) + '"</div></div>';
       return;
     }
 
@@ -270,7 +270,7 @@ async function doSearch() {
       </div>
     `).join('');
   } catch (e) {
-    document.getElementById('search-results').innerHTML = '<div class="empty-state"><div class="e-text">Error en b\u00fasqueda.</div></div>';
+    document.getElementById('search-results').innerHTML = '<div class="empty-state"><div class="e-text">Search error.</div></div>';
   }
 }
 
@@ -282,7 +282,7 @@ async function loadDocs() {
     const container = document.getElementById('docs-results');
 
     if (!docs.length) {
-      container.innerHTML = '<div class="empty-state"><div class="e-icon">&#128196;</div><div class="e-text">Sin documentos indexados.</div></div>';
+      container.innerHTML = '<div class="empty-state"><div class="e-icon">&#128196;</div><div class="e-text">No indexed documents.</div></div>';
       return;
     }
 
@@ -296,7 +296,7 @@ async function loadDocs() {
       </div>
     `).join('');
   } catch (e) {
-    document.getElementById('docs-results').innerHTML = '<div class="empty-state"><div class="e-text">Error al cargar.</div></div>';
+    document.getElementById('docs-results').innerHTML = '<div class="empty-state"><div class="e-text">Failed to load.</div></div>';
   }
 }
 
@@ -307,7 +307,7 @@ async function loadObservations() {
     const container = document.getElementById('observations');
 
     if (!Array.isArray(sessions) || !sessions.length) {
-      container.innerHTML = '<div class="empty-state"><div class="e-icon">&#128065;</div><div class="e-text">Sin observaciones a\u00fan. Se capturan autom\u00e1ticamente al trabajar.</div></div>';
+      container.innerHTML = '<div class="empty-state"><div class="e-icon">&#128065;</div><div class="e-text">No observations yet. They are captured automatically as you work.</div></div>';
       return;
     }
 
@@ -321,7 +321,7 @@ async function loadObservations() {
       </div>
     `).join('');
   } catch (e) {
-    document.getElementById('observations').innerHTML = '<div class="empty-state"><div class="e-text">Error al cargar.</div></div>';
+    document.getElementById('observations').innerHTML = '<div class="empty-state"><div class="e-text">Failed to load.</div></div>';
   }
 }
 
