@@ -60,7 +60,8 @@ else
 fi
 
 "$VENV_DIR/bin/pip" install --quiet --upgrade pip
-"$VENV_DIR/bin/pip" install --quiet "$INSTALL_SOURCE[dashboard]"
+"$VENV_DIR/bin/pip" install --quiet "$INSTALL_SOURCE"
+"$VENV_DIR/bin/pip" install --quiet fastapi uvicorn
 echo "  ✔ Dependencies installed"
 
 # 3. Register marketplace
