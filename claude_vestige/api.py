@@ -16,7 +16,24 @@ from claude_vestige.store import VectorStore
 
 app = FastAPI(title="Claude Vestige Dashboard")
 
-DASHBOARD_HTML = Path(__file__).parent.parent / "claude-vestige-plugin" / "dashboard.html"
+def _find_dashboard_html() -> Path:
+    """Busca dashboard.html en múltiples ubicaciones."""
+    candidates = [
+        # Desarrollo local (repo)
+        Path(__file__).parent.parent / "claude-vestige-plugin" / "dashboard.html",
+        # Instalado via plugin marketplace
+        Path.home() / ".claude-vestige" / "repo" / "claude-vestige-plugin" / "dashboard.html",
+        # Plugin cache de Claude Code
+        Path.home() / ".claude" / "plugins" / "cache" / "claude-vestige-tools" / "claude-vestige" / "0.1.0" / "dashboard.html",
+        # Dentro del paquete Python
+        Path(__file__).parent / "dashboard.html",
+    ]
+    for c in candidates:
+        if c.exists():
+            return c
+    return candidates[0]  # fallback
+
+DASHBOARD_HTML = _find_dashboard_html()
 def _get_registry_path() -> Path:
     """Retorna el path del registry. Configurable via CLAUDE_VESTIGE_REGISTRY para tests."""
     import os
