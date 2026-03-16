@@ -1,0 +1,21 @@
+{
+  "name": "claude-vestige-tools",
+  "owner": {
+    "name": "MrMokuchoDev"
+  },
+  "metadata": {
+    "description": "Claude Vestige — Persistent semantic memory for Claude Code",
+    "version": "0.1.0"
+  },
+  "plugins": [
+    {
+      "name": "claude-vestige",
+      "source": "./claude-vestige-plugin",
+      "description": "Automatic context injection and observation capture via hooks",
+      "version": "0.1.0",
+      "author": {
+        "name": "MrMokuchoDev"
+      }
+    }
+  ]
+}
