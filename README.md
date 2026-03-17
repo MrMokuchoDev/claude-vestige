@@ -71,6 +71,44 @@ Claude Vestige works automatically — no `--plugin-dir` or extra configuration 
 2. Claude already knows what happened in prior sessions
 3. New file changes continue to be captured
 
+### Commands
+
+#### `/bootstrap` — Index files into memory
+
+Index additional files into the project's semantic memory. You can use the short or full form:
+
+```
+/bootstrap
+/claude_vestige:bootstrap
+```
+
+Claude will show which files are already indexed and suggest candidates. You can also index specific files directly:
+
+```
+/claude_vestige:bootstrap --include docs/architecture.md internal_docs/decisions.md
+```
+
+Files explicitly requested are always indexed, even if they're in `.gitignore` or `.git/info/exclude`.
+
+#### `/search` — Search project memory
+
+Search across all indexed documents and session observations. Short or full form:
+
+```
+/search how does authentication work
+/claude_vestige:search how does authentication work
+```
+
+Uses semantic similarity (not just keyword matching) to find relevant chunks from docs and past session observations.
+
+### Update
+
+To update to the latest version, run the install command again:
+
+```bash
+curl -sSL https://raw.githubusercontent.com/MrMokuchoDev/claude-vestige/main/install.sh | bash
+```
+
 ### Dashboard
 
 ```bash
@@ -114,7 +152,7 @@ claude-vestige/
 │   ├── config.py                # Config loader + gitignore
 │   ├── memory.py                # save_memory
 │   ├── bootstrap.py             # Stack detection + indexing
-│   ├── server.py                # MCP server (optional tools)
+│   ├── cli.py                   # CLI commands (search, bootstrap, status)
 │   └── api.py                   # Dashboard FastAPI
 │
 ├── claude-vestige-plugin/       # Claude Code plugin
