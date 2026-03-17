@@ -2,6 +2,8 @@
 
 Persistent semantic memory plugin for Claude Code. Automatically captures context from your coding sessions and injects relevant knowledge into future conversations.
 
+**[Why Claude Vestige?](docs/WHY.md)** — How it saves time, reduces token usage, and gives Claude context it wouldn't have otherwise.
+
 ## What it does
 
 - **SessionStart**: Auto-indexes `README.md` and `CLAUDE.md`, injects relevant context from ChromaDB
