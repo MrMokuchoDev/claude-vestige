@@ -60,7 +60,7 @@ else
 fi
 
 "$VENV_DIR/bin/pip" install --quiet --upgrade pip
-"$VENV_DIR/bin/pip" install --quiet "$INSTALL_SOURCE"
+"$VENV_DIR/bin/pip" install --quiet --force-reinstall "$INSTALL_SOURCE"
 "$VENV_DIR/bin/pip" install --quiet fastapi uvicorn
 echo "  ✔ Dependencies installed"
 
