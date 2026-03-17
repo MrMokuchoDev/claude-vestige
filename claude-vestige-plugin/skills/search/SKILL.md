@@ -1,6 +1,6 @@
 ---
 name: search
-description: Deep semantic search in project memory. Use when the user asks to "search project memory", "find context about", "what do we know about", "recall decisions", or needs to find specific information in the project index.
+description: Deep semantic search in project memory. Use when the user asks to "search memory", "find context about", "what do we know about", "recall decisions about", or needs to find specific information in the project index.
 user-invocable: true
 ---
 
@@ -10,24 +10,24 @@ Search project documentation and session memory using semantic similarity.
 
 ## Steps
 
-1. Call `retrieve_context` with the user's query and `n=10`:
-   - Returns a lightweight index (~50 tokens per result)
-   - Each result has: id, file, section, type (doc/memory), snippet
+1. Run a search with the user's query:
+   ```bash
+   ${CLAUDE_PLUGIN_ROOT}/hooks/run.sh -m claude_vestige.cli search --query "the user query here" --cwd "$PWD" --n 10
+   ```
+   This returns a JSON index with: id, file, section, type (doc/memory), snippet.
 
 2. Evaluate the results — read the snippets to determine which are relevant.
-   - Filter by type if the user is looking for decisions (memory) vs documentation (doc)
 
-3. Call `get_chunks` with ONLY the relevant IDs (usually 2-4, not all 10):
-   - Returns full content (~500 tokens per chunk)
-   - This is the token optimization: only fetch what you need
+3. For relevant results, get full content:
+   ```bash
+   ${CLAUDE_PLUGIN_ROOT}/hooks/run.sh -m claude_vestige.cli chunks --ids "id1" "id2" --cwd "$PWD"
+   ```
+   Only fetch 2-4 chunks, not all 10.
 
-4. Present the findings to the user in a clear format.
+4. Present the findings to the user clearly.
 
 ## Token Optimization
 
-This 2-layer pattern saves ~70% tokens vs fetching all chunks:
-- Layer 1: `retrieve_context` → lightweight index (~700 tokens total)
-- Layer 2: `get_chunks` → full content only for selected IDs (~1500 tokens for 3 chunks)
-- Naive approach would use ~2500 tokens for the same 10 results
-
-**Never call `get_chunks` with all IDs from the index — that defeats the purpose.**
+This 2-layer pattern saves ~70% tokens:
+- Layer 1: search → lightweight index (~700 tokens)
+- Layer 2: chunks → full content only for relevant IDs (~1500 tokens for 3 chunks)

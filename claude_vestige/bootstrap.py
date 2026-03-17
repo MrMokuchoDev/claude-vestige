@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import Optional
 
 from claude_vestige.config import (
+    MAX_FILE_SIZE,
     ProjectConfig,
     build_exclude_spec,
     find_markdown_files,
@@ -146,9 +147,18 @@ def bootstrap_project(
     if not project_root.is_dir():
         return f"Error: {project_root} no es un directorio válido."
 
-    # Si ya existe config, re-indexar
+    # Si ya existe config
     config = load_config(project_root)
     if config:
+        if include_files:
+            # Agregar nuevos archivos al include existente sin duplicar
+            updated = list(config.include)
+            for f in include_files:
+                if f not in updated:
+                    updated.append(f)
+            if updated != config.include:
+                generate_config_toml(project_root, config.name, updated)
+                config = load_config(project_root)
         return _index_existing_config(config)
 
     # Si se proporcionan archivos específicos, generar config e indexar
@@ -160,17 +170,43 @@ def bootstrap_project(
 
 
 def auto_bootstrap(project_root: Path) -> Optional[str]:
-    """Auto-bootstrap: indexa README.md y CLAUDE.md si existen. Retorna None si no hay nada."""
-    auto_files: list[str] = []
+    """Auto-bootstrap: indexa README.md y CLAUDE.md si existen.
+
+    Estos archivos se indexan directamente sin pasar por .gitignore,
+    porque son fundamentales para el contexto aunque estén excluidos de git.
+    """
+    auto_files: list[Path] = []
 
     for filename in ["README.md", "CLAUDE.md"]:
-        if (project_root / filename).exists():
-            auto_files.append(filename)
+        filepath = project_root / filename
+        if filepath.exists() and filepath.stat().st_size <= MAX_FILE_SIZE:
+            auto_files.append(filepath)
 
     if not auto_files:
         return None
 
-    return _bootstrap_with_files(project_root, auto_files)
+    # Generar config.toml
+    name = project_root.name
+    include_names = [f.name for f in auto_files]
+    generate_config_toml(project_root, name, include_names)
+
+    # Indexar directamente — sin exclude_spec, sin .gitignore
+    try:
+        config = load_config(project_root)
+        if not config:
+            return None
+
+        provider = create_provider(config.embeddings_provider, config.embeddings_model)
+        store = VectorStore(config.db_path)
+
+        chunks_with_embeddings = ingest_files(auto_files, project_root, provider)
+        count = store.upsert_docs(chunks_with_embeddings)
+
+        _register_project(config)
+
+        return f"Proyecto '{name}': indexados {len(auto_files)} archivos, {count} chunks."
+    except Exception as e:
+        return f"Error en auto-bootstrap: {e}"
 
 
 def _register_project(config: ProjectConfig) -> None:

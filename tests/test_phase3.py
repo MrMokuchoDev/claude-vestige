@@ -45,23 +45,24 @@ class TestSkills:
         assert fm.get("user-invocable") is True
 
 
-class TestMcpJson:
-    def test_mcp_json_exists(self):
-        mcp_path = PLUGIN_DIR / ".mcp.json"
-        assert mcp_path.exists()
+class TestCliModule:
+    def test_cli_module_exists(self):
+        cli_path = Path(__file__).parent.parent / "claude_vestige" / "cli.py"
+        assert cli_path.exists()
 
-    def test_mcp_json_is_valid(self):
+    def test_no_mcp_json(self):
+        """MCP was removed — .mcp.json should not exist."""
         mcp_path = PLUGIN_DIR / ".mcp.json"
-        data = json.loads(mcp_path.read_text())
-        assert "mcpServers" in data
-        assert "claude_vestige" in data["mcpServers"]
+        assert not mcp_path.exists()
 
-    def test_mcp_json_has_stdio_type(self):
-        mcp_path = PLUGIN_DIR / ".mcp.json"
-        data = json.loads(mcp_path.read_text())
-        server = data["mcpServers"]["claude_vestige"]
-        assert server["type"] == "stdio"
-        assert "python" in server["command"]
+    def test_skills_use_bash_not_mcp(self):
+        """Skills should use Bash commands, not MCP tools."""
+        bootstrap_skill = (PLUGIN_DIR / "skills" / "bootstrap" / "SKILL.md").read_text()
+        search_skill = (PLUGIN_DIR / "skills" / "search" / "SKILL.md").read_text()
+        assert "run.sh" in bootstrap_skill
+        assert "run.sh" in search_skill
+        assert "MCP" not in bootstrap_skill
+        assert "MCP" not in search_skill
 
 
 class TestPluginJson:
@@ -85,9 +86,9 @@ class TestPluginClaude:
     def test_plugin_claude_md_has_content(self):
         claude_path = PLUGIN_DIR / "CLAUDE.md"
         content = claude_path.read_text()
-        assert "retrieve_context" in content
-        assert "get_chunks" in content
-        assert "save_memory" in content
+        assert "bootstrap" in content
+        assert "search" in content
+        assert "save_memory" in content.lower() or "save memory" in content.lower()
 
 
 class TestDashboard:

@@ -222,6 +222,22 @@ class VectorStore:
             except Exception:
                 pass
 
+    def get_indexed_files(self) -> list[str]:
+        """Retorna lista de archivos únicos indexados en la colección docs."""
+        try:
+            collection = self._get_collection("docs")
+            count = collection.count()
+            if count == 0:
+                return []
+            data = collection.get(include=["metadatas"])
+            files = set()
+            for meta in data["metadatas"]:
+                if meta and "file" in meta:
+                    files.add(meta["file"])
+            return sorted(files)
+        except Exception:
+            return []
+
     def get_stats(self) -> dict:
         """Retorna estadísticas del proyecto."""
         try:

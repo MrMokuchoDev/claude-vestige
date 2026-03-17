@@ -115,11 +115,20 @@ def build_exclude_spec(
 def resolve_include_files(
     project_root: Path, include: list[str], exclude_spec: pathspec.PathSpec
 ) -> list[Path]:
-    """Resuelve los globs de include contra el filesystem, aplicando exclusiones."""
+    """Resuelve los globs de include contra el filesystem, aplicando exclusiones.
+
+    Archivos explícitos (sin wildcards) solo se verifican contra DEFAULT_EXCLUDES
+    de seguridad (.env, .key, etc.), ignorando .gitignore. Si el usuario pide
+    indexar un archivo específico, se respeta.
+
+    Patrones con wildcards sí respetan .gitignore + DEFAULT_EXCLUDES.
+    """
+    security_spec = pathspec.PathSpec.from_lines("gitignore", DEFAULT_EXCLUDES)
     files: list[Path] = []
     seen: set[Path] = set()
 
     for pattern in include:
+        is_explicit = "*" not in pattern and "?" not in pattern
         for match in project_root.glob(pattern):
             if not match.is_file():
                 continue
@@ -128,8 +137,12 @@ def resolve_include_files(
             if match.stat().st_size > MAX_FILE_SIZE:
                 continue
             rel = match.relative_to(project_root)
-            if exclude_spec.match_file(str(rel)):
-                continue
+            if is_explicit:
+                if security_spec.match_file(str(rel)):
+                    continue
+            else:
+                if exclude_spec.match_file(str(rel)):
+                    continue
             seen.add(match)
             files.append(match)
 
